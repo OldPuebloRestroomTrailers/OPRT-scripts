@@ -1,0 +1,590 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>OPRT Cadence Scripts</title>
+<style>
+  * { box-sizing: border-box; margin: 0; padding: 0; }
+  body {
+    font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif;
+    background: #f5f4f0; color: #1a1a1a; padding: 1rem; max-width: 680px;
+    margin: 0 auto; font-size: 16px; line-height: 1.6;
+  }
+  header { padding: 1.25rem 0 0.75rem; }
+  header h1 { font-size: 18px; font-weight: 600; margin-bottom: 3px; }
+  header p { font-size: 13px; color: #888; }
+  .nav-tabs { display: flex; gap: 6px; margin: 1rem 0 0; border-bottom: 1px solid #e0ddd5; flex-wrap: wrap; }
+  .nav-tab {
+    font-size: 13px; font-weight: 500; padding: 8px 14px; border-radius: 8px 8px 0 0;
+    cursor: pointer; border: 1px solid transparent; border-bottom: none; color: #888;
+    background: transparent; margin-bottom: -1px;
+  }
+  .nav-tab.active { background: #f5f4f0; color: #1a1a1a; border-color: #e0ddd5; border-bottom-color: #f5f4f0; }
+  .nav-tab:hover:not(.active) { color: #555; }
+  .script-page { display: none; padding-top: 1.25rem; }
+  .script-page.active { display: block; }
+  .tab-header { display: flex; align-items: center; justify-content: space-between; margin-bottom: 1rem; }
+  .tab-subhead { font-size: 13px; color: #888; }
+  .expand-btn {
+    font-size: 12px; color: #555; background: #fff; border: 1px solid #ddd;
+    border-radius: 6px; padding: 4px 10px; cursor: pointer;
+  }
+  .expand-btn:hover { background: #f0ede8; }
+  .section { background: #fff; border: 1px solid #e0ddd5; border-radius: 12px; margin-bottom: 1rem; overflow: hidden; }
+  .section-header {
+    display: flex; align-items: center; justify-content: space-between; padding: 0.85rem 1rem;
+    cursor: pointer; background: #faf9f6; gap: 10px; -webkit-tap-highlight-color: transparent;
+  }
+  .section-header:hover { background: #f0ede8; }
+  .section-label { display: flex; align-items: center; gap: 10px; flex: 1; }
+  .tag {
+    font-size: 10px; font-weight: 600; padding: 3px 8px; border-radius: 20px; white-space: nowrap;
+    flex-shrink: 0; text-transform: uppercase; letter-spacing: 0.04em;
+  }
+  .tag-open     { background: #e6f4ec; color: #2d7a4f; }
+  .tag-pitch    { background: #e8f0fe; color: #1a56c4; }
+  .tag-close    { background: #fde8e8; color: #b52b2b; }
+  .tag-followup { background: #f3e8fe; color: #6b21a8; }
+  .tag-voicemail{ background: #fef3e2; color: #a05a00; }
+  .tag-ghost    { background: #fde8e8; color: #b52b2b; }
+  .tag-email    { background: #e8f0fe; color: #1a56c4; }
+  .section-title { font-size: 14px; font-weight: 500; color: #1a1a1a; line-height: 1.3; }
+  .chevron { font-size: 18px; color: #aaa; transition: transform 0.2s; flex-shrink: 0; line-height: 1; }
+  .chevron.open { transform: rotate(180deg); }
+  .section-body { display: none; padding: 1rem; border-top: 1px solid #e8e4dc; }
+  .section-body.open { display: block; }
+  .note {
+    font-size: 12px; color: #777; font-style: italic; margin-bottom: 12px; padding: 7px 10px;
+    background: #f7f6f2; border-left: 2px solid #ccc;
+  }
+  .followup-item { margin-bottom: 16px; padding-bottom: 16px; border-bottom: 1px solid #ece9e2; }
+  .followup-item:last-child { border-bottom: none; margin-bottom: 0; padding-bottom: 0; }
+  .followup-day {
+    font-size: 11px; font-weight: 700; color: #6b21a8; text-transform: uppercase;
+    letter-spacing: 0.05em; margin-bottom: 6px;
+  }
+  .followup-label { font-size: 10px; font-weight: 700; color: #999; text-transform: uppercase; letter-spacing: 0.05em; }
+  .copy-row { display: flex; align-items: flex-start; gap: 8px; margin-top: 4px; }
+  .copy-row .speech { flex: 1; }
+  .speech {
+    font-size: 15px; color: #1a1a1a; line-height: 1.65; padding: 10px 14px;
+    background: #f7f6f2; border-radius: 8px; white-space: pre-wrap;
+  }
+  .copy-btn {
+    flex-shrink: 0; font-size: 11px; font-weight: 600; color: #555; background: #fff;
+    border: 1px solid #ddd; border-radius: 6px; padding: 6px 10px; cursor: pointer;
+    white-space: nowrap; margin-top: 2px;
+  }
+  .copy-btn:hover { background: #f0ede8; }
+  .copy-btn.copied { background: #e6f4ec; color: #2d7a4f; border-color: #cfe8da; }
+  footer { text-align: center; font-size: 11px; color: #bbb; padding: 1.5rem 0 2rem; }
+</style>
+</head>
+<body>
+
+<header>
+  <h1>OPRT Cadence Scripts</h1>
+  <p>Old Pueblo Restroom Trailers · (520) 975-1914 / GHL (520) 467-4532</p>
+</header>
+
+<div class="nav-tabs">
+  <button class="nav-tab active" onclick="switchTab('newlead')">New Lead</button>
+  <button class="nav-tab" onclick="switchTab('quote')">Quote</button>
+  <button class="nav-tab" onclick="switchTab('agreement')">Agreement/Invoice</button>
+  <button class="nav-tab" onclick="switchTab('booked')">Booked</button>
+  <button class="nav-tab" onclick="switchTab('ghosted')">Ghosted</button>
+</div>
+
+<!-- ===================== NEW LEAD ===================== -->
+<div id="tab-newlead" class="script-page active">
+  <div class="tab-header">
+    <span class="tab-subhead">Stage 1 · Cadence 1, Day 0–10</span>
+    <button class="expand-btn" onclick="toggleAll('newlead')">Expand all</button>
+  </div>
+
+  <div class="section">
+    <div class="section-header" onclick="toggle(this)">
+      <div class="section-label"><span class="tag tag-followup">Texts</span><span class="section-title">Day 0 / 2 / 5 / 10 sequence</span></div>
+      <span class="chevron">&#8964;</span>
+    </div>
+    <div class="section-body">
+      <div class="note">Call + voicemail attempt is mandatory same day, before the Day 0 text goes out.</div>
+
+      <div class="followup-item">
+        <div class="followup-day">Day 0 — current</div>
+        <div class="copy-row"><div class="speech">Hey {{contact.first_name}}, this is Scott, the owner of Old Pueblo Restroom Trailers. Just tried you. Reaching out about your event on {{contact.date_of_event}}. Give me a callback when you get a chance.</div>
+        <button class="copy-btn" onclick="copyText(this)" data-copy="Hey {{contact.first_name}}, this is Scott, the owner of Old Pueblo Restroom Trailers. Just tried you. Reaching out about your event on {{contact.date_of_event}}. Give me a callback when you get a chance.">Copy</button></div>
+      </div>
+
+      <div class="followup-item">
+        <div class="followup-day">Day 0 — test: quotes all three trailers</div>
+        <div class="copy-row"><div class="speech">Hey {{contact.first_name}}, this is Scott with Old Pueblo Restroom Trailers. Got your inquiry for {{contact.date_of_event}}. We've got three trailers: the Roadrunner (2-stall) for $800, the Javelina (3-stall) for $1,000, and the Big Horn (4-stall) for $1,200. Let me know which one you're interested in and I'll check what's available for your date and get you some more details.</div>
+        <button class="copy-btn" onclick="copyText(this)" data-copy="Hey {{contact.first_name}}, this is Scott with Old Pueblo Restroom Trailers. Got your inquiry for {{contact.date_of_event}}. We've got three trailers: the Roadrunner (2-stall) for $800, the Javelina (3-stall) for $1,000, and the Big Horn (4-stall) for $1,200. Let me know which one you're interested in and I'll check what's available for your date and get you some more details.">Copy</button></div>
+        <div class="note">Skips the call-first flow — running as a separate test path, not a like-for-like copy test.</div>
+      </div>
+
+      <div class="followup-item">
+        <div class="followup-day">Day 2</div>
+        <div class="copy-row"><div class="speech">Hey {{contact.first_name}}, Scott again with Old Pueblo. If it's easier to just handle this over text, I can do that too. Want me to send over the details?</div>
+        <button class="copy-btn" onclick="copyText(this)" data-copy="Hey {{contact.first_name}}, Scott again with Old Pueblo. If it's easier to just handle this over text, I can do that too. Want me to send over the details?">Copy</button></div>
+      </div>
+
+      <div class="followup-item">
+        <div class="followup-day">Day 5</div>
+        <div class="copy-row"><div class="speech">Hey {{contact.first_name}}, still haven't heard from you. How do you want to proceed from here?</div>
+        <button class="copy-btn" onclick="copyText(this)" data-copy="Hey {{contact.first_name}}, still haven't heard from you. How do you want to proceed from here?">Copy</button></div>
+      </div>
+
+      <div class="followup-item">
+        <div class="followup-day">Day 10 — final</div>
+        <div class="copy-row"><div class="speech">Hey {{contact.first_name}}, one more try from me, if the timing's not right or you went another direction, no worries at all, just let me know either way. Otherwise happy to help with {{contact.date_of_event}}.</div>
+        <button class="copy-btn" onclick="copyText(this)" data-copy="Hey {{contact.first_name}}, one more try from me, if the timing's not right or you went another direction, no worries at all, just let me know either way. Otherwise happy to help with {{contact.date_of_event}}.">Copy</button></div>
+      </div>
+    </div>
+  </div>
+
+  <div class="section">
+    <div class="section-header" onclick="toggle(this)">
+      <div class="section-label"><span class="tag tag-voicemail">Call</span><span class="section-title">Day 10 — final call attempt</span></div>
+      <span class="chevron">&#8964;</span>
+    </div>
+    <div class="section-body">
+      <div class="followup-label">Live answer</div>
+      <div class="copy-row"><div class="speech">{{contact.first_name}}? Hey, it's Scott, Old Pueblo Restroom Trailers. Been trying to connect on your event for {{contact.date_of_event}}, wanted to catch you live before I close out the file on my end. Is this still something you need, did you already get it handled another way, or do you just need a bit more time to figure things out?</div>
+      <button class="copy-btn" onclick="copyText(this)" data-copy="{{contact.first_name}}? Hey, it's Scott, Old Pueblo Restroom Trailers. Been trying to connect on your event for {{contact.date_of_event}}, wanted to catch you live before I close out the file on my end. Is this still something you need, did you already get it handled another way, or do you just need a bit more time to figure things out?">Copy</button></div>
+
+      <div class="followup-label" style="margin-top:14px;">Voicemail</div>
+      <div class="copy-row"><div class="speech">Hey {{contact.first_name}}, this is Scott with Old Pueblo Restroom Trailers. Wanted to catch you live before I close out your file, if you still need help with the restrooms for {{contact.date_of_event}}, give me a call back at {{location.phone}}. Otherwise no worries, just let me know either way.</div>
+      <button class="copy-btn" onclick="copyText(this)" data-copy="Hey {{contact.first_name}}, this is Scott with Old Pueblo Restroom Trailers. Wanted to catch you live before I close out your file, if you still need help with the restrooms for {{contact.date_of_event}}, give me a call back at {{location.phone}}. Otherwise no worries, just let me know either way.">Copy</button></div>
+    </div>
+  </div>
+</div>
+
+<!-- ===================== QUOTE ===================== -->
+<div id="tab-quote" class="script-page">
+  <div class="tab-header">
+    <span class="tab-subhead">Stage 2 · Cadence 6, Day 0–10</span>
+    <button class="expand-btn" onclick="toggleAll('quote')">Expand all</button>
+  </div>
+
+  <div class="section">
+    <div class="section-header" onclick="toggle(this)">
+      <div class="section-label"><span class="tag tag-email">Email</span><span class="section-title">Day 0 quote emails</span></div>
+      <span class="chevron">&#8964;</span>
+    </div>
+    <div class="section-body">
+      <div class="followup-label">Single-trailer, sell version</div>
+      <div class="copy-row"><div class="speech">Hi {{contact.first_name}},
+
+Attached is your quote for {{contact.date_of_event}}. The {{contact.product}} runs {{contact.product_price}}, with delivery, setup, and pickup all included, one call to me and it's handled from start to finish.
+
+This isn't a porta-potty. Guests get a real bathroom experience: flushing toilets, running water, climate control, and private stalls, the kind of detail people notice and remember about an event. Here's a link so you can see exactly what shows up on the day: https://www.oldpueblorestroomtrailers.com/restroom-trailer-rentals-tucson-az
+
+A 25% deposit locks in your date, with the balance due 7 days before the event. Let me know if you have any questions, happy to walk through anything before you decide.
+
+Best,</div>
+      <button class="copy-btn" onclick="copyText(this)" data-copy="Hi {{contact.first_name}},
+
+Attached is your quote for {{contact.date_of_event}}. The {{contact.product}} runs {{contact.product_price}}, with delivery, setup, and pickup all included, one call to me and it's handled from start to finish.
+
+This isn't a porta-potty. Guests get a real bathroom experience: flushing toilets, running water, climate control, and private stalls, the kind of detail people notice and remember about an event. Here's a link so you can see exactly what shows up on the day: https://www.oldpueblorestroomtrailers.com/restroom-trailer-rentals-tucson-az
+
+A 25% deposit locks in your date, with the balance due 7 days before the event. Let me know if you have any questions, happy to walk through anything before you decide.
+
+Best,">Copy</button></div>
+
+      <div class="followup-label" style="margin-top:14px;">Structured, single trailer (rich text)</div>
+      <div class="copy-row"><div class="speech">Hi {{contact.first_name}},
+
+Here's your quote for {{contact.date_of_event}}.
+
+SERVICE OVERVIEW
+Restroom trailer rental includes flushing toilets, waterless urinal, running water sinks, and air conditioning. Delivery, setup, and pickup are all included.
+
+EQUIPMENT
+Trailer: {{contact.product}}
+Rental Rate: {{contact.product_price}}
+Generator Rental (if required): $100
+
+REQUIREMENTS
+Power — 120V/20A electrical connection required. Generator available.
+Water — Standard hose connection on grounds required. Fresh water delivery available.
+Placement — Level, accessible location.
+Access — Clear path for delivery and pickup.
+
+TERMS
+A 25% non-refundable deposit reserves your date. Balance and refundable security deposit due 7 days prior to delivery.
+
+To move forward, just reply and we'll coordinate delivery and setup.
+
+Scott Corral | Owner
+Old Pueblo Restroom Trailers
+(520) 467-4532 | OldPuebloRestroomTrailers.com</div>
+      <button class="copy-btn" onclick="copyText(this)" data-copy="Hi {{contact.first_name}},
+
+Here's your quote for {{contact.date_of_event}}.
+
+SERVICE OVERVIEW
+Restroom trailer rental includes flushing toilets, waterless urinal, running water sinks, and air conditioning. Delivery, setup, and pickup are all included.
+
+EQUIPMENT
+Trailer: {{contact.product}}
+Rental Rate: {{contact.product_price}}
+Generator Rental (if required): $100
+
+REQUIREMENTS
+Power — 120V/20A electrical connection required. Generator available.
+Water — Standard hose connection on grounds required. Fresh water delivery available.
+Placement — Level, accessible location.
+Access — Clear path for delivery and pickup.
+
+TERMS
+A 25% non-refundable deposit reserves your date. Balance and refundable security deposit due 7 days prior to delivery.
+
+To move forward, just reply and we'll coordinate delivery and setup.
+
+Scott Corral | Owner
+Old Pueblo Restroom Trailers
+(520) 467-4532 | OldPuebloRestroomTrailers.com">Copy</button></div>
+
+      <div class="followup-label" style="margin-top:14px;">All three trailers (rich text, test)</div>
+      <div class="copy-row"><div class="speech">Hi {{contact.first_name}},
+
+Here's your quote for your event. Pricing for all three trailers is below, let me know which one fits your event and confirm the date for me and I'll confirm what's actually available for your date.
+
+SERVICE OVERVIEW
+Restroom trailer rental includes flushing toilets, waterless urinal, running water sinks, and air conditioning. Delivery, setup, and pickup are all included.
+
+EQUIPMENT OPTIONS
+The Roadrunner (2-stall for 100 guests or less) — $800
+The Javelina (3-stall for 200 guests or less) — $1,000
+The Big Horn (4-stall for 300 guests or less) — $1,200
+
+Generator Rental (if required): $100
+
+REQUIREMENTS
+Power — 120V/20A electrical connection required. Generator available.
+Water — Standard hose connection on grounds required. Fresh water delivery available.
+Placement — Level, accessible location.
+Access — Clear path for delivery and pickup.
+
+TERMS
+A 25% non-refundable deposit reserves your date. Balance and refundable security deposit due 7 days prior to delivery.
+
+Let me know which trailer works best for your event and I'll check availability and get you locked in.
+
+Best Regards,
+
+Scott Corral | Owner
+Old Pueblo Restroom Trailers
+(520) 467-4532 | OldPuebloRestroomTrailers.com
+
+To unsubscribe, simply reply to this email with the word "unsubscribe"</div>
+      <button class="copy-btn" onclick="copyText(this)" data-copy="Hi {{contact.first_name}},
+
+Here's your quote for your event. Pricing for all three trailers is below, let me know which one fits your event and confirm the date for me and I'll confirm what's actually available for your date.
+
+SERVICE OVERVIEW
+Restroom trailer rental includes flushing toilets, waterless urinal, running water sinks, and air conditioning. Delivery, setup, and pickup are all included.
+
+EQUIPMENT OPTIONS
+The Roadrunner (2-stall for 100 guests or less) — $800
+The Javelina (3-stall for 200 guests or less) — $1,000
+The Big Horn (4-stall for 300 guests or less) — $1,200
+
+Generator Rental (if required): $100
+
+REQUIREMENTS
+Power — 120V/20A electrical connection required. Generator available.
+Water — Standard hose connection on grounds required. Fresh water delivery available.
+Placement — Level, accessible location.
+Access — Clear path for delivery and pickup.
+
+TERMS
+A 25% non-refundable deposit reserves your date. Balance and refundable security deposit due 7 days prior to delivery.
+
+Let me know which trailer works best for your event and I'll check availability and get you locked in.
+
+Best Regards,
+
+Scott Corral | Owner
+Old Pueblo Restroom Trailers
+(520) 467-4532 | OldPuebloRestroomTrailers.com
+
+To unsubscribe, simply reply to this email with the word "unsubscribe"">Copy</button></div>
+    </div>
+  </div>
+
+  <div class="section">
+    <div class="section-header" onclick="toggle(this)">
+      <div class="section-label"><span class="tag tag-followup">Texts</span><span class="section-title">Day 0 / 1 / 5 / 10 sequence</span></div>
+      <span class="chevron">&#8964;</span>
+    </div>
+    <div class="section-body">
+      <div class="followup-item">
+        <div class="followup-day">Day 0 — current</div>
+        <div class="copy-row"><div class="speech">Hi {{contact.first_name}}, I sent over your quote for {{contact.date_of_event}}. It's $[amount] and it keeps your guests out of the house, using a real bathroom, and still comfortable for the whole event. A 25% deposit locks in your date. Reach out any time if you have questions.</div>
+        <button class="copy-btn" onclick="copyText(this)" data-copy="Hi {{contact.first_name}}, I sent over your quote for {{contact.date_of_event}}. It's $[amount] and it keeps your guests out of the house, using a real bathroom, and still comfortable for the whole event. A 25% deposit locks in your date. Reach out any time if you have questions.">Copy</button></div>
+      </div>
+      <div class="followup-item">
+        <div class="followup-day">Day 0 — test</div>
+        <div class="copy-row"><div class="speech">Hi {{contact.first_name}}, sent your quote for {{contact.date_of_event}}, {{contact.product_price}}. A 25% deposit locks in the date. Any questions, just ask.</div>
+        <button class="copy-btn" onclick="copyText(this)" data-copy="Hi {{contact.first_name}}, sent your quote for {{contact.date_of_event}}, {{contact.product_price}}. A 25% deposit locks in the date. Any questions, just ask.">Copy</button></div>
+      </div>
+
+      <div class="followup-item">
+        <div class="followup-day">Day 1 — current</div>
+        <div class="copy-row"><div class="speech">Hey {{contact.first_name}}, tell me what your thoughts are on the quote.</div>
+        <button class="copy-btn" onclick="copyText(this)" data-copy="Hey {{contact.first_name}}, tell me what your thoughts are on the quote.">Copy</button></div>
+      </div>
+      <div class="followup-item">
+        <div class="followup-day">Day 1 — test</div>
+        <div class="copy-row"><div class="speech">Hey {{contact.first_name}}, quotes have a way of getting buried in inboxes, just making sure yours didn't.</div>
+        <button class="copy-btn" onclick="copyText(this)" data-copy="Hey {{contact.first_name}}, quotes have a way of getting buried in inboxes, just making sure yours didn't.">Copy</button></div>
+      </div>
+
+      <div class="followup-item">
+        <div class="followup-day">Day 5 — current</div>
+        <div class="copy-row"><div class="speech">Hey {{contact.first_name}}, still haven't heard from you. How do you want to proceed from here?</div>
+        <button class="copy-btn" onclick="copyText(this)" data-copy="Hey {{contact.first_name}}, still haven't heard from you. How do you want to proceed from here?">Copy</button></div>
+      </div>
+      <div class="followup-item">
+        <div class="followup-day">Day 5 — test</div>
+        <div class="copy-row"><div class="speech">Hey {{contact.first_name}}, quote's not going anywhere, but your date might. Any questions before you decide?</div>
+        <button class="copy-btn" onclick="copyText(this)" data-copy="Hey {{contact.first_name}}, quote's not going anywhere, but your date might. Any questions before you decide?">Copy</button></div>
+      </div>
+
+      <div class="followup-item">
+        <div class="followup-day">Day 10 — current, final</div>
+        <div class="copy-row"><div class="speech">Hey {{contact.first_name}}, not sure if you got abducted by aliens or just decided against it, but figured I'd check in one more time. Your date's still available.</div>
+        <button class="copy-btn" onclick="copyText(this)" data-copy="Hey {{contact.first_name}}, not sure if you got abducted by aliens or just decided against it, but figured I'd check in one more time. Your date's still available.">Copy</button></div>
+      </div>
+      <div class="followup-item">
+        <div class="followup-day">Day 10 — test, final</div>
+        <div class="copy-row"><div class="speech">Hey {{contact.first_name}}, one more try from me, if the timing's not right or you went another direction, no worries at all, just let me know either way. Otherwise happy to help with {{contact.date_of_event}}.</div>
+        <button class="copy-btn" onclick="copyText(this)" data-copy="Hey {{contact.first_name}}, one more try from me, if the timing's not right or you went another direction, no worries at all, just let me know either way. Otherwise happy to help with {{contact.date_of_event}}.">Copy</button></div>
+      </div>
+    </div>
+  </div>
+
+  <div class="section">
+    <div class="section-header" onclick="toggle(this)">
+      <div class="section-label"><span class="tag tag-voicemail">Call</span><span class="section-title">Day 10 — final call attempt</span></div>
+      <span class="chevron">&#8964;</span>
+    </div>
+    <div class="section-body">
+      <div class="followup-label">Live answer</div>
+      <div class="copy-row"><div class="speech">{{contact.first_name}}? Hey, it's Scott, Old Pueblo Restroom Trailers. Been trying to connect on the quote I sent for {{contact.date_of_event}}, wanted to catch you live before I close out the file on my end. Is this still something you need, did you already get it handled another way, or do you just need a bit more time to figure things out?</div>
+      <button class="copy-btn" onclick="copyText(this)" data-copy="{{contact.first_name}}? Hey, it's Scott, Old Pueblo Restroom Trailers. Been trying to connect on the quote I sent for {{contact.date_of_event}}, wanted to catch you live before I close out the file on my end. Is this still something you need, did you already get it handled another way, or do you just need a bit more time to figure things out?">Copy</button></div>
+
+      <div class="followup-label" style="margin-top:14px;">Voicemail</div>
+      <div class="copy-row"><div class="speech">Hey {{contact.first_name}}, this is Scott with Old Pueblo Restroom Trailers. Wanted to catch you live before I close out your file, if you still want to move forward on the quote for {{contact.date_of_event}}, give me a call back at {{location.phone}}. Otherwise no worries, just let me know either way.</div>
+      <button class="copy-btn" onclick="copyText(this)" data-copy="Hey {{contact.first_name}}, this is Scott with Old Pueblo Restroom Trailers. Wanted to catch you live before I close out your file, if you still want to move forward on the quote for {{contact.date_of_event}}, give me a call back at {{location.phone}}. Otherwise no worries, just let me know either way.">Copy</button></div>
+    </div>
+  </div>
+</div>
+
+<!-- ===================== AGREEMENT / INVOICE ===================== -->
+<div id="tab-agreement" class="script-page">
+  <div class="tab-header">
+    <span class="tab-subhead">Stage 3 · Day 0, 1, 3, 5, 7</span>
+    <button class="expand-btn" onclick="toggleAll('agreement')">Expand all</button>
+  </div>
+
+  <div class="section">
+    <div class="section-header" onclick="toggle(this)">
+      <div class="section-label"><span class="tag tag-followup">Texts</span><span class="section-title">Day 0 / 1 / 3 / 5 / 7 sequence</span></div>
+      <span class="chevron">&#8964;</span>
+    </div>
+    <div class="section-body">
+      <div class="note">Day 7 final touch is accurate, not fabricated urgency — the date genuinely opens back up if unsigned.</div>
+
+      <div class="followup-item">
+        <div class="followup-day">Day 0</div>
+        <div class="copy-row"><div class="speech">Hey {{contact.first_name}}, just sent over your agreement and invoice for {{contact.date_of_event}}. Once that's signed and the deposit's in, your date is locked. Let me know if you run into any issues.</div>
+        <button class="copy-btn" onclick="copyText(this)" data-copy="Hey {{contact.first_name}}, just sent over your agreement and invoice for {{contact.date_of_event}}. Once that's signed and the deposit's in, your date is locked. Let me know if you run into any issues.">Copy</button></div>
+      </div>
+      <div class="followup-item">
+        <div class="followup-day">Day 1</div>
+        <div class="copy-row"><div class="speech">Hey {{contact.first_name}}, just making sure you got the agreement okay, anything not coming through?</div>
+        <button class="copy-btn" onclick="copyText(this)" data-copy="Hey {{contact.first_name}}, just making sure you got the agreement okay, anything not coming through?">Copy</button></div>
+      </div>
+      <div class="followup-item">
+        <div class="followup-day">Day 3</div>
+        <div class="copy-row"><div class="speech">Hey {{contact.first_name}}, wanted to check in, your date isn't locked in until the agreement and deposit are in. Anything holding you up?</div>
+        <button class="copy-btn" onclick="copyText(this)" data-copy="Hey {{contact.first_name}}, wanted to check in, your date isn't locked in until the agreement and deposit are in. Anything holding you up?">Copy</button></div>
+      </div>
+      <div class="followup-item">
+        <div class="followup-day">Day 5</div>
+        <div class="copy-row"><div class="speech">Hey {{contact.first_name}}, still need to get that agreement signed to lock {{contact.date_of_event}}. What's the status on your end?</div>
+        <button class="copy-btn" onclick="copyText(this)" data-copy="Hey {{contact.first_name}}, still need to get that agreement signed to lock {{contact.date_of_event}}. What's the status on your end?">Copy</button></div>
+      </div>
+      <div class="followup-item">
+        <div class="followup-day">Day 7 — final</div>
+        <div class="copy-row"><div class="speech">Hey {{contact.first_name}}, last check before I have to open {{contact.date_of_event}} back up. If you're still good to go, let's get this locked in today.</div>
+        <button class="copy-btn" onclick="copyText(this)" data-copy="Hey {{contact.first_name}}, last check before I have to open {{contact.date_of_event}} back up. If you're still good to go, let's get this locked in today.">Copy</button></div>
+      </div>
+    </div>
+  </div>
+</div>
+
+<!-- ===================== BOOKED ===================== -->
+<div id="tab-booked" class="script-page">
+  <div class="tab-header">
+    <span class="tab-subhead">Stage 4 · Booking confirmed through delivery</span>
+    <button class="expand-btn" onclick="toggleAll('booked')">Expand all</button>
+  </div>
+
+  <div class="section">
+    <div class="section-header" onclick="toggle(this)">
+      <div class="section-label"><span class="tag tag-close">Confirm</span><span class="section-title">Day 0 — booking confirmed</span></div>
+      <span class="chevron">&#8964;</span>
+    </div>
+    <div class="section-body">
+      <div class="copy-row"><div class="speech">{{contact.first_name}}, you're locked in for {{contact.date_of_event}}! You're going to love the trailer! Agreement and deposit are in, so the date's yours. I'll reach out as the event gets closer to confirm delivery details, let me know if anything changes on your end before then. And I'm always here for any questions.</div>
+      <button class="copy-btn" onclick="copyText(this)" data-copy="{{contact.first_name}}, you're locked in for {{contact.date_of_event}}! You're going to love the trailer! Agreement and deposit are in, so the date's yours. I'll reach out as the event gets closer to confirm delivery details, let me know if anything changes on your end before then. And I'm always here for any questions.">Copy</button></div>
+    </div>
+  </div>
+
+  <div class="section">
+    <div class="section-header" onclick="toggle(this)">
+      <div class="section-label"><span class="tag tag-followup">Texts</span><span class="section-title">Every 30 days — check-in rotation</span></div>
+      <span class="chevron">&#8964;</span>
+    </div>
+    <div class="section-body">
+      <div class="note">Rotate through these so a client booked far out doesn't get the identical text every month.</div>
+      <div class="followup-item">
+        <div class="followup-day">Variant A</div>
+        <div class="copy-row"><div class="speech">Hi {{contact.first_name}}, this is Scott with Old Pueblo Restroom Trailers. Just checking in, you're still locked in for {{contact.date_of_event}}. Reach out if you have any questions. Thanks.</div>
+        <button class="copy-btn" onclick="copyText(this)" data-copy="Hi {{contact.first_name}}, this is Scott with Old Pueblo Restroom Trailers. Just checking in, you're still locked in for {{contact.date_of_event}}. Reach out if you have any questions. Thanks.">Copy</button></div>
+      </div>
+      <div class="followup-item">
+        <div class="followup-day">Variant B</div>
+        <div class="copy-row"><div class="speech">Hi {{contact.first_name}}, Scott with Old Pueblo here. Wanted to touch base, everything's still set for {{contact.date_of_event}} on our end. Let me know if anything's changed on yours.</div>
+        <button class="copy-btn" onclick="copyText(this)" data-copy="Hi {{contact.first_name}}, Scott with Old Pueblo here. Wanted to touch base, everything's still set for {{contact.date_of_event}} on our end. Let me know if anything's changed on yours.">Copy</button></div>
+      </div>
+      <div class="followup-item">
+        <div class="followup-day">Variant C</div>
+        <div class="copy-row"><div class="speech">Hi {{contact.first_name}}, this is Scott. Quick check-in on {{contact.date_of_event}}, still good to go. Give me a shout if you need anything before then.</div>
+        <button class="copy-btn" onclick="copyText(this)" data-copy="Hi {{contact.first_name}}, this is Scott. Quick check-in on {{contact.date_of_event}}, still good to go. Give me a shout if you need anything before then.">Copy</button></div>
+      </div>
+    </div>
+  </div>
+
+  <div class="section">
+    <div class="section-header" onclick="toggle(this)">
+      <div class="section-label"><span class="tag tag-pitch">Logistics</span><span class="section-title">30 days out — full confirm</span></div>
+      <span class="chevron">&#8964;</span>
+    </div>
+    <div class="section-body">
+      <div class="copy-row"><div class="speech">Hi {{contact.first_name}}, it's Scott again with Old Pueblo Restroom Trailers. We're a month out, so let's lock down the details, site access, power (or need for our generator), water hookup, and your preferred delivery window. Give me a call or text when you get a chance so we can nail it all down.</div>
+      <button class="copy-btn" onclick="copyText(this)" data-copy="Hi {{contact.first_name}}, it's Scott again with Old Pueblo Restroom Trailers. We're a month out, so let's lock down the details, site access, power (or need for our generator), water hookup, and your preferred delivery window. Give me a call or text when you get a chance so we can nail it all down.">Copy</button></div>
+    </div>
+  </div>
+
+  <div class="section">
+    <div class="section-header" onclick="toggle(this)">
+      <div class="section-label"><span class="tag tag-close">Balance</span><span class="section-title">7 days out — balance + arrival confirm</span></div>
+      <span class="chevron">&#8964;</span>
+    </div>
+    <div class="section-body">
+      <div class="copy-row"><div class="speech">Hi {{contact.first_name}}, we're one week out. Your remaining balance and security deposit are due, I'll send that over separately. Let's also confirm your delivery window. What questions do you have?</div>
+      <button class="copy-btn" onclick="copyText(this)" data-copy="Hi {{contact.first_name}}, we're one week out. Your remaining balance and security deposit are due, I'll send that over separately. Let's also confirm your delivery window. What questions do you have?">Copy</button></div>
+    </div>
+  </div>
+</div>
+
+<!-- ===================== GHOSTED ===================== -->
+<div id="tab-ghosted" class="script-page">
+  <div class="tab-header">
+    <span class="tab-subhead">Shared branch · Day 21, then every 30 days, weekly inside 30 days out</span>
+    <button class="expand-btn" onclick="toggleAll('ghosted')">Expand all</button>
+  </div>
+
+  <div class="section">
+    <div class="section-header" onclick="toggle(this)">
+      <div class="section-label"><span class="tag tag-ghost">Day 21</span><span class="section-title">Call first, text/voicemail fallback</span></div>
+      <span class="chevron">&#8964;</span>
+    </div>
+    <div class="section-body">
+      <div class="copy-row"><div class="speech">Hey {{contact.first_name}}, I was looking through some files and I ran into yours. Whatever happened with the {{contact.date_of_event}} event? Did you end up going another route, or is that still up in the air? If it's still open I'd love to help.</div>
+      <button class="copy-btn" onclick="copyText(this)" data-copy="Hey {{contact.first_name}}, I was looking through some files and I ran into yours. Whatever happened with the {{contact.date_of_event}} event? Did you end up going another route, or is that still up in the air? If it's still open I'd love to help.">Copy</button></div>
+    </div>
+  </div>
+
+  <div class="section">
+    <div class="section-header" onclick="toggle(this)">
+      <div class="section-label"><span class="tag tag-followup">Texts</span><span class="section-title">Every 30 days — rotation</span></div>
+      <span class="chevron">&#8964;</span>
+    </div>
+    <div class="section-body">
+      <div class="note">Rotate so the same contact doesn't get the identical line twice in a row.</div>
+      <div class="followup-item">
+        <div class="followup-day">Variant A</div>
+        <div class="copy-row"><div class="speech">Hey {{contact.first_name}}, cleaning up some old inquiries and saw yours for {{contact.date_of_event}}. Did that end up happening, or is it still on the table?</div>
+        <button class="copy-btn" onclick="copyText(this)" data-copy="Hey {{contact.first_name}}, cleaning up some old inquiries and saw yours for {{contact.date_of_event}}. Did that end up happening, or is it still on the table?">Copy</button></div>
+      </div>
+      <div class="followup-item">
+        <div class="followup-day">Variant B</div>
+        <div class="copy-row"><div class="speech">Hey {{contact.first_name}}, heading into busy season and wanted to check before things fill up, is {{contact.date_of_event}} still something you need help with?</div>
+        <button class="copy-btn" onclick="copyText(this)" data-copy="Hey {{contact.first_name}}, heading into busy season and wanted to check before things fill up, is {{contact.date_of_event}} still something you need help with?">Copy</button></div>
+      </div>
+      <div class="followup-item">
+        <div class="followup-day">Variant C</div>
+        <div class="copy-row"><div class="speech">Hey {{contact.first_name}}, following up on {{contact.date_of_event}}, still need a restroom trailer or did that get handled another way?</div>
+        <button class="copy-btn" onclick="copyText(this)" data-copy="Hey {{contact.first_name}}, following up on {{contact.date_of_event}}, still need a restroom trailer or did that get handled another way?">Copy</button></div>
+      </div>
+    </div>
+  </div>
+
+  <div class="section">
+    <div class="section-header" onclick="toggle(this)">
+      <div class="section-label"><span class="tag tag-close">Weekly</span><span class="section-title">Inside 30 days out</span></div>
+      <span class="chevron">&#8964;</span>
+    </div>
+    <div class="section-body">
+      <div class="copy-row"><div class="speech">Hey {{contact.first_name}}, {{contact.date_of_event}} is getting close, still need a trailer or should I let this go?</div>
+      <button class="copy-btn" onclick="copyText(this)" data-copy="Hey {{contact.first_name}}, {{contact.date_of_event}} is getting close, still need a trailer or should I let this go?">Copy</button></div>
+    </div>
+  </div>
+</div>
+
+<footer>Old Pueblo Restroom Trailers · (520) 975-1914</footer>
+
+<script>
+function copyText(btn) {
+  navigator.clipboard.writeText(btn.dataset.copy).then(() => {
+    const original = btn.textContent;
+    btn.textContent = 'Copied';
+    btn.classList.add('copied');
+    setTimeout(() => { btn.textContent = original; btn.classList.remove('copied'); }, 1200);
+  });
+}
+function toggle(header) {
+  const body = header.nextElementSibling;
+  const chevron = header.querySelector('.chevron');
+  const isOpen = body.classList.contains('open');
+  body.classList.toggle('open', !isOpen);
+  chevron.classList.toggle('open', !isOpen);
+}
+function switchTab(tab) {
+  document.querySelectorAll('.script-page').forEach(p => p.classList.remove('active'));
+  document.querySelectorAll('.nav-tab').forEach(t => t.classList.remove('active'));
+  document.getElementById('tab-' + tab).classList.add('active');
+  event.target.classList.add('active');
+}
+function toggleAll(tab) {
+  const page = document.getElementById('tab-' + tab);
+  const bodies = page.querySelectorAll('.section-body');
+  const chevrons = page.querySelectorAll('.chevron');
+  const btn = page.querySelector('.expand-btn');
+  const anyOpen = [...bodies].some(b => b.classList.contains('open'));
+  bodies.forEach(b => b.classList.toggle('open', !anyOpen));
+  chevrons.forEach(c => c.classList.toggle('open', !anyOpen));
+  btn.textContent = anyOpen ? 'Expand all' : 'Collapse all';
+}
+</script>
+
+</body>
+</html>
